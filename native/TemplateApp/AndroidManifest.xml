@@ -8,11 +8,11 @@
 
 	<application android:icon="@drawable/sf__icon"
 	    android:label="@string/app_name"
-		android:name=".TemplateApp"
+		android:name="com.salesforce.samples.analyticsapp.AnalyticsApp"
 		android:manageSpaceActivity="com.salesforce.androidsdk.ui.ManageSpaceActivity">
 
 		<!-- Launcher screen -->
-		<activity android:name=".MainActivity"
+		<activity android:name="com.salesforce.samples.analyticsapp.MainActivity"
 		    android:label="@string/app_name"
 			android:theme="@android:style/Theme.NoTitleBar.Fullscreen">
 			<intent-filter>
