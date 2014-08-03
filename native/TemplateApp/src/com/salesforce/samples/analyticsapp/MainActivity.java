@@ -52,7 +52,7 @@ import com.salesforce.androidsdk.rest.RestClient.AsyncRequestCallback;
 import com.salesforce.androidsdk.rest.RestRequest;
 import com.salesforce.androidsdk.rest.RestResponse;
 import com.salesforce.androidsdk.ui.sfnative.SalesforceActivity;
-import com.salesforce.samples.templateapp.R;
+import com.salesforce.samples.analyticsapp.R;
 
 /**
  * Main activity
@@ -117,7 +117,8 @@ public class MainActivity extends SalesforceActivity {
 	 */
 	public void onFetchContactsClick(View v) throws UnsupportedEncodingException {
         //sendRequest("SELECT Name FROM Contact");
-		sendRequest("SELECT Id From Report");
+		//sendRequest("SELECT Name From Report");
+		//sendRequest("SELECT id From Report");
 	       RestRequest feedRequest = generateRequest("GET", "analytics/reports/00OF0000005q9Jx?includeDetails=true", null);
 	       sendRequest(feedRequest);
 	}
