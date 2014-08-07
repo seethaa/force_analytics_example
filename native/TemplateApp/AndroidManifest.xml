@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
+
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
 	package="com.salesforce.samples.analyticsapp"
 	android:versionCode="1"
@@ -23,7 +24,8 @@
 	</application>
 
 	<uses-sdk android:minSdkVersion="8" />
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+	
     <!--
         GCM permission to ensure that only this application can
         receive the messages and registration result. This must be of
