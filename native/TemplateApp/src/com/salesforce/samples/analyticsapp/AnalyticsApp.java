@@ -35,6 +35,7 @@ import com.salesforce.androidsdk.app.SalesforceSDKManager;
  */
 public class AnalyticsApp extends Application {
 
+
 	@Override
 	public void onCreate() {
 		super.onCreate();

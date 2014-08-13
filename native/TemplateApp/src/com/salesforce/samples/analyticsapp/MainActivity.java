@@ -26,15 +26,10 @@
  */
 package com.salesforce.samples.analyticsapp;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -46,17 +41,16 @@ import org.apache.http.message.BasicNameValuePair;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
 import com.salesforce.androidsdk.app.SalesforceSDKManager;
 import com.salesforce.androidsdk.rest.RestClient;
 import com.salesforce.androidsdk.rest.RestClient.AsyncRequestCallback;
@@ -66,12 +60,14 @@ import com.salesforce.androidsdk.ui.sfnative.SalesforceActivity;
 
 /**
  * Main activity
+ * Starts an activity with a options to fetch reports from Salesforce Analytics API, and graph the average amounts as a pie chart
+ * This can be easily adapted to create remaining graphs
  */
 public class MainActivity extends SalesforceActivity {
 
+	public static double[] percentages = new double[5];
 	private RestClient client;
 	private ArrayAdapter<String> listAdapter;
-	private String finalResult = null;
 
 
 	@Override
@@ -80,6 +76,22 @@ public class MainActivity extends SalesforceActivity {
 
 		// Setup view
 		setContentView(R.layout.main);
+
+		Button button = (Button) findViewById(R.id.fetch_graphs);
+
+		button.setOnClickListener(new OnClickListener() {
+
+			@Override
+			public void onClick(View arg0) {
+				Bundle b=new Bundle();
+				b.putDoubleArray("percentages", percentages);
+				Intent i = new Intent(MainActivity.this, GraphActivity.class);
+				i.putExtras(b);
+				startActivity(i);
+
+			}
+
+		});
 	}
 
 
@@ -89,9 +101,6 @@ public class MainActivity extends SalesforceActivity {
 		// Hide everything until we are logged in
 		findViewById(R.id.root).setVisibility(View.INVISIBLE);
 
-		// Create list adapter
-		listAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, new ArrayList<String>());
-		((ListView) findViewById(R.id.contacts_list)).setAdapter(listAdapter);				
 
 		super.onResume();
 	}		
@@ -124,76 +133,36 @@ public class MainActivity extends SalesforceActivity {
 	}	
 
 	/**
-	 * Called when "Fetch Contacts" button is clicked
+	 * Called when "Fetch Reports" button is clicked
 	 * 
 	 * @param v
 	 * @throws UnsupportedEncodingException 
 	 */
-	public void onFetchContactsClick(View v) throws UnsupportedEncodingException {
-		//sendRequest("SELECT Name FROM Contact");
-		//sendRequest("SELECT Name From Report");
-		//sendRequest("SELECT id From Report");
+	public void onFetchReportsClick(View v) throws UnsupportedEncodingException {
+
 		RestRequest feedRequest = generateRequest("GET", "analytics/reports/00OF0000005q9Jx?includeDetails=true", null);
 		sendRequest(feedRequest);
 
-		//		PostFetcher fetcher = new PostFetcher();
-		//		fetcher.execute();
-
-		//Read the server response and attempt to parse it as JSON
-
 	}
 
-
-
-	private void writeToFile(String data) {
-		try {
-			OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("config.txt", Context.MODE_PRIVATE));
-			outputStreamWriter.write(data);
-			outputStreamWriter.close();
-
-			TextView tv = (TextView) findViewById(R.id.textView1);
-			tv.setText(data);
-		}
-		catch (IOException e) {
-			Log.e("Exception", "File write failed: " + e.toString());
-		} 
+	/**
+	 * Helper function to round doubles up to two decimal places. 
+	 * @param d
+	 * @return double result
+	 */
+	public double roundTwoDecimals(double d) {
+		DecimalFormat twoDForm = new DecimalFormat("#.##");
+		return Double.valueOf(twoDForm.format(d));
 	}
 
-
-	private String readFromFile() {
-
-		String ret = "";
-
-		try {
-			InputStream inputStream = openFileInput("config.txt");
-
-			if ( inputStream != null ) {
-				InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
-				BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
-				String receiveString = "";
-				StringBuilder stringBuilder = new StringBuilder();
-
-				while ( (receiveString = bufferedReader.readLine()) != null ) {
-					stringBuilder.append(receiveString);
-				}
-
-				inputStream.close();
-				ret = stringBuilder.toString();
-			}
-		}
-		catch (FileNotFoundException e) {
-			Log.e("login activity", "File not found: " + e.toString());
-		} catch (IOException e) {
-			Log.e("login activity", "Can not read file: " + e.toString());
-		}
-
-		return ret;
-	}
-
-
-	public String parseagain(String jsonLine) throws FileNotFoundException {
-
-
+	/**
+	 * Main parse function which reads the JSON response from server and parses data 
+	 * to retrieve all amounts. 
+	 * This parse function will only work for Opportunity type reports.
+	 * @param jsonLine
+	 * @return
+	 */
+	public String parse(String jsonLine) {
 
 		try {
 
@@ -206,98 +175,172 @@ public class MainActivity extends SalesforceActivity {
 
 			JSONObject maps = new JSONObject(factMaps); //creates new json object for all maps
 
-			
-			//GET TYPE (0!T)
-			String T_0_full = maps.getString("0!T");
-			System.out.println("full string 0t : "+ T_0_full);
-			JSONObject T_0_object = new JSONObject(T_0_full);
-			
-			JSONArray T_0_label = T_0_object.getJSONArray("aggregates");
-			String T_0_amt = T_0_label.getJSONObject(0).getString("label");
-			System.out.println("T_0_amt: " + T_0_amt);
-			
-			String T_0_rev = T_0_label.getJSONObject(1).getString("label");
-			System.out.println("T_0_rev: " + T_0_rev);
-			
-			String T_0_age = T_0_label.getJSONObject(2).getString("label");
-			System.out.println("T_0_age: " + T_0_age);
-			
-			//GET EXISTING CUSTOMER - UPGRADE (1!T)
-			String T_1_full = maps.getString("1!T");
-			System.out.println("full string 1t : "+ T_1_full);
-			JSONObject T_1_object = new JSONObject(T_1_full);
-			
-			JSONArray T_1_label = T_1_object.getJSONArray("aggregates");
-			String T_1_amt = T_1_label.getJSONObject(0).getString("label");
-			System.out.println("T_1_amt: " + T_1_amt);
-			
-			String T_1_rev = T_1_label.getJSONObject(1).getString("label");
-			System.out.println("T_1_rev: " + T_1_rev);
-			
-			String T_1_age = T_1_label.getJSONObject(2).getString("label");
-			System.out.println("T_1_age: " + T_1_age);
-			
-			//GET EXISTING CUSTOMER - REPLACEMENT (2!T)
-			String T_2_full = maps.getString("2!T");
-			System.out.println("full string 2t : "+ T_2_full);
-			JSONObject T_2_object = new JSONObject(T_2_full);
-			
-			JSONArray T_2_label = T_2_object.getJSONArray("aggregates");
-			String T_2_amt = T_2_label.getJSONObject(0).getString("label");
-			System.out.println("T_2_amt: " + T_2_amt);
-			
-			String T_2_rev = T_2_label.getJSONObject(1).getString("label");
-			System.out.println("T_2_rev: " + T_2_rev);
-			
-			String T_2_age = T_2_label.getJSONObject(2).getString("label");
-			System.out.println("T_2_age: " + T_2_age);
-			
-			
-		
-			//GET EXISTING CUSTOMER - DOWNGRADE (3!T)
-			String T_3_full = maps.getString("3!T");
-			System.out.println("full string 3t : "+ T_3_full);
-			JSONObject T_3_object = new JSONObject(T_3_full);
-			
-			JSONArray T_3_label = T_3_object.getJSONArray("aggregates");
-			String T_3_amt = T_3_label.getJSONObject(0).getString("label");
-			System.out.println("T_3_amt: " + T_3_amt);
-			
-			String T_3_rev = T_3_label.getJSONObject(1).getString("label");
-			System.out.println("T_3_rev: " + T_3_rev);
-			
-			String T_3_age = T_3_label.getJSONObject(2).getString("label");
-			System.out.println("T_3_age: " + T_3_age);
-			//NEW CUSTOMER (4!T)
-			String T_4_full = maps.getString("4!T");
-			System.out.println("full string 4t : "+ T_4_full);
-			JSONObject T_4_object = new JSONObject(T_4_full);
-			
-			JSONArray T_4_label = T_4_object.getJSONArray("aggregates");
-			String T_4_amt = T_4_label.getJSONObject(0).getString("label");
-			System.out.println("T_4_amt: " + T_4_amt);
-			
-			String T_4_rev = T_4_label.getJSONObject(1).getString("label");
-			System.out.println("T_4_rev: " + T_4_rev);
-			
-			String T_4_age = T_4_label.getJSONObject(2).getString("label");
-			System.out.println("T_4_age: " + T_4_age);
-			
 			//GET TOTALS (T!T)
 			String T_T_full = maps.getString("T!T");
 			System.out.println("full string tt : "+ T_T_full);
 			JSONObject T_T_object = new JSONObject(T_T_full);
-			
+
 			JSONArray T_T_label = T_T_object.getJSONArray("aggregates");
 			String T_amt = T_T_label.getJSONObject(0).getString("label");
 			System.out.println("T_amt: " + T_amt);
-			
+
+			T_amt = T_amt.substring(1);
+
+			int T_T_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_amt).intValue();
+
+			System.out.println("T int: " + T_T_amt_int);
+			//int T_T_amt_int = Integer.parseInt(T_amt);
+
 			String T_rev = T_T_label.getJSONObject(1).getString("label");
 			System.out.println("T_rev: " + T_rev);
-			
+
 			String T_age = T_T_label.getJSONObject(2).getString("label");
 			System.out.println("T_age: " + T_age);
-		
+
+			//GET TYPE (0!T)
+			String T_0_full = maps.getString("0!T");
+			System.out.println("full string 0t : "+ T_0_full);
+			JSONObject T_0_object = new JSONObject(T_0_full);
+
+			JSONArray T_0_label = T_0_object.getJSONArray("aggregates");
+			String T_0_amt = T_0_label.getJSONObject(0).getString("label");
+			System.out.println("T_0_amt: " + T_0_amt);
+
+			T_0_amt = T_0_amt.substring(1);
+
+			int T_0_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_0_amt).intValue();
+
+			System.out.println("0 int: " + T_0_amt_int);
+
+			double T_0_amt_avg = ( ((double) T_0_amt_int) / ((double) T_T_amt_int)) * 100; 
+
+			T_0_amt_avg = roundTwoDecimals(T_0_amt_avg);
+
+			percentages[0] = T_0_amt_avg;
+			System.out.println("0 avg: " + T_0_amt_avg);
+
+			String T_0_rev = T_0_label.getJSONObject(1).getString("label");
+			System.out.println("T_0_rev: " + T_0_rev);
+
+			String T_0_age = T_0_label.getJSONObject(2).getString("label");
+			System.out.println("T_0_age: " + T_0_age);
+
+			//GET EXISTING CUSTOMER - UPGRADE (1!T)
+			String T_1_full = maps.getString("1!T");
+			System.out.println("full string 1t : "+ T_1_full);
+			JSONObject T_1_object = new JSONObject(T_1_full);
+
+			JSONArray T_1_label = T_1_object.getJSONArray("aggregates");
+			String T_1_amt = T_1_label.getJSONObject(0).getString("label");
+			System.out.println("T_1_amt: " + T_1_amt);
+
+			T_1_amt = T_1_amt.substring(1);
+
+			int T_1_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_1_amt).intValue();
+			System.out.println("1 int: " + T_1_amt_int);
+
+			double T_1_amt_avg = ( ((double) T_1_amt_int) / ((double) T_T_amt_int)) * 100; 
+
+			T_1_amt_avg = roundTwoDecimals(T_1_amt_avg);
+
+			percentages[1] = T_1_amt_avg;
+
+			System.out.println("1 avg: " + T_1_amt_avg);
+
+			String T_1_rev = T_1_label.getJSONObject(1).getString("label");
+			System.out.println("T_1_rev: " + T_1_rev);
+
+			String T_1_age = T_1_label.getJSONObject(2).getString("label");
+			System.out.println("T_1_age: " + T_1_age);
+
+			//GET EXISTING CUSTOMER - REPLACEMENT (2!T)
+			String T_2_full = maps.getString("2!T");
+			System.out.println("full string 2t : "+ T_2_full);
+			JSONObject T_2_object = new JSONObject(T_2_full);
+
+			JSONArray T_2_label = T_2_object.getJSONArray("aggregates");
+			String T_2_amt = T_2_label.getJSONObject(0).getString("label");
+			System.out.println("T_2_amt: " + T_2_amt);
+
+			T_2_amt = T_2_amt.substring(1);
+
+			int T_2_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_2_amt).intValue();
+
+			System.out.println("2 int: " + T_2_amt_int);
+
+
+			double T_2_amt_avg = ( ((double) T_2_amt_int) / ((double) T_T_amt_int)) * 100; 
+
+			T_2_amt_avg = roundTwoDecimals(T_2_amt_avg);
+
+			percentages[2] = T_2_amt_avg;
+			System.out.println("2 avg: " + T_2_amt_avg);
+
+			String T_2_rev = T_2_label.getJSONObject(1).getString("label");
+			System.out.println("T_2_rev: " + T_2_rev);
+
+			String T_2_age = T_2_label.getJSONObject(2).getString("label");
+			System.out.println("T_2_age: " + T_2_age);
+
+
+
+			//GET EXISTING CUSTOMER - DOWNGRADE (3!T)
+			String T_3_full = maps.getString("3!T");
+			System.out.println("full string 3t : "+ T_3_full);
+			JSONObject T_3_object = new JSONObject(T_3_full);
+
+			JSONArray T_3_label = T_3_object.getJSONArray("aggregates");
+			String T_3_amt = T_3_label.getJSONObject(0).getString("label");
+			System.out.println("T_3_amt: " + T_3_amt);
+
+			T_3_amt = T_3_amt.substring(1);
+
+			int T_3_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_3_amt).intValue();
+
+
+			double T_3_amt_avg = ( ((double) T_3_amt_int) / ((double) T_T_amt_int)) * 100; 
+
+			T_3_amt_avg = roundTwoDecimals(T_3_amt_avg);
+			percentages[3] =  T_3_amt_avg;
+
+			String T_3_rev = T_3_label.getJSONObject(1).getString("label");
+			System.out.println("T_3_rev: " + T_3_rev);
+
+			String T_3_age = T_3_label.getJSONObject(2).getString("label");
+			System.out.println("T_3_age: " + T_3_age);
+
+			//NEW CUSTOMER (4!T)
+			String T_4_full = maps.getString("4!T");
+			System.out.println("full string 4t : "+ T_4_full);
+			JSONObject T_4_object = new JSONObject(T_4_full);
+
+			JSONArray T_4_label = T_4_object.getJSONArray("aggregates");
+			String T_4_amt = T_4_label.getJSONObject(0).getString("label");
+			System.out.println("T_4_amt: " + T_4_amt);
+
+			T_4_amt = T_4_amt.substring(1);
+
+			int T_4_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_4_amt).intValue();
+
+			double T_4_amt_avg = ( ((double) T_4_amt_int) / ((double) T_T_amt_int)) * 100; 
+
+			T_4_amt_avg = roundTwoDecimals(T_4_amt_avg);
+			percentages[4] = T_4_amt_avg;
+
+			String T_4_rev = T_4_label.getJSONObject(1).getString("label");
+			System.out.println("T_4_rev: " + T_4_rev);
+
+			String T_4_age = T_4_label.getJSONObject(2).getString("label");
+			System.out.println("T_4_age: " + T_4_age);
+
+
+			for (int i=0; i< percentages.length; i++){
+				System.out.println("%PS: " + percentages[i]);
+			}
+
+
+
+
 		} catch (Exception e) {
 			Toast.makeText(getBaseContext(), e.getMessage(),
 					Toast.LENGTH_SHORT).show();
@@ -305,141 +348,6 @@ public class MainActivity extends SalesforceActivity {
 
 
 		return null;
-	}
-
-	public String parse(String jsonLine) throws FileNotFoundException {
-		System.out.println("got full line: "+jsonLine + "LJWELJFLWEJWLEJFLEWJFLWE LFJWEL FJWOE FJOWEIJF LJWELFJLWEJFLWJELJEFWLJWELF JWLKEJFWFLJLWEJ"+
-				"OEUWOEIUFOUEOFUOWE");
-
-		//writeToFile(jsonLine);
-
-		//		 JsonParser jp = new JsonParser();
-		//	      JsonElement je = jp.parse(jsonLine);
-		//	      JsonElement je2 = je.getAsJsonObject().get("factMap");
-		//	      //JsonElement je3 = je2.getAsJsonObject().get("rows");
-		//	     // JsonElement je4 = je3.getAsJsonObject().get("dataCells");
-		//	      
-		//	      String testing = je2.getAsString();
-
-
-
-
-
-		try {
-
-			JSONObject reader = new JSONObject(jsonLine);
-
-			//			JSONObject fm = reader.getJSONObject("factMap");
-			String factMaps = reader.getString("factMap");
-			TextView tv = (TextView) findViewById(R.id.textView1);
-
-
-			//		        int len = factMaps.length();
-
-			//		        factMaps = factMaps.substring(1, len-1); //remove first and last curly braces
-
-			//		        String[] rowsList = factMaps.split("{*},");
-			// JSONArray arr = new JSONArray(rowsList);
-			tv.setText(factMaps);
-
-			JSONObject maps = new JSONObject(factMaps); //creates new json object for all maps
-
-			//JSONArray rows = maps.getJSONArray("dataCells");
-
-
-			/* for (int i = 0; i<rowsList.length; i++){
-//		    	  JSONObject n = rows.getJSONObject(i);
-		    	  System.out.println("addy: " +i + " : "+rowsList[i].toString());
-//		    	  JSONArray curr = n.getJSONArray("rows");
-
-
-
-		    	 for (int k=0; k< curr.length(); k++){
-		    		  JSONObject currData = curr.getJSONObject(k);
-		    		  String datacell =currData.getString("dataCells");
-		    		  tv.setText(datacell);
-				      Toast.makeText(getBaseContext(), datacell,
-			                    Toast.LENGTH_LONG).show();
-		    	  }
-
-		      } */
-
-			//            File myFile = new File("/mnt/mysdfile.txt");
-			//            myFile.createNewFile();
-			//            FileOutputStream fOut = new FileOutputStream(myFile);
-			//            OutputStreamWriter myOutWriter = 
-			//                                    new OutputStreamWriter(fOut);
-			//            myOutWriter.append(jsonLine);
-			//            myOutWriter.close();
-			//            fOut.close();
-			//            Toast.makeText(getBaseContext(),
-			//                    jsonLine + "LJWELJFLWEJWLEJFLEWJFLWE LFJWEL FJWOE FJOWEIJF LJWELFJLWEJFLWJELJEFWLJWELF JWLKEJFWFLJLWEJ"+
-			//                            "OEUWOEIUFOUEOFUOWE",
-			//                    Toast.LENGTH_SHORT).show();
-		} catch (Exception e) {
-			Toast.makeText(getBaseContext(), e.getMessage(),
-					Toast.LENGTH_SHORT).show();
-		}
-
-		//	    JsonElement jelement = new JsonParser().parse(jsonLine);
-		//	    JsonObject  jobject = jelement.getAsJsonObject();
-		//	    jobject = jobject.getAsJsonObject("factMap");
-		//	    JsonArray jarray = jobject.getAsJsonArray("rows");
-		//	    jobject = jarray.get(0).getAsJsonObject();
-		//	    
-		//	    String result = jobject.get("dataCells").toString();
-		//	    return result;
-
-
-		//	      Type mapType = new TypeToken<Map<String, Item>>() {}.getType();
-		//
-		//	      Map<String, Item> testing = new Gson().fromJson(je4, mapType);
-
-		return null;
-	}
-
-	/**
-	 * Called when "Fetch Accounts" button is clicked
-	 * 
-	 * @param v
-	 * @throws UnsupportedEncodingException 
-	 */
-	public void onFetchAccountsClick(View v) throws UnsupportedEncodingException {
-		sendRequest("SELECT Name FROM Account");
-	}	
-
-	private void sendRequest(String soql) throws UnsupportedEncodingException {
-		RestRequest restRequest = RestRequest.getRequestForQuery(getString(R.string.api_version), soql);
-
-		client.sendAsync(restRequest, new AsyncRequestCallback() {
-			@Override
-			public void onSuccess(RestRequest request, RestResponse result) {
-				try {
-
-
-					listAdapter.clear();
-					JSONArray records = result.asJSONObject().getJSONArray("records");
-					for (int i = 0; i < records.length(); i++) {
-						listAdapter.add(records.getJSONObject(i).getString("Name"));
-					}		
-
-
-					//print response 
-
-
-
-				} catch (Exception e) {
-					onError(e);
-				}
-			}
-
-			@Override
-			public void onError(Exception exception) {
-				Toast.makeText(MainActivity.this,
-						MainActivity.this.getString(SalesforceSDKManager.getInstance().getSalesforceR().stringGenericError(), exception.toString()),
-						Toast.LENGTH_LONG).show();
-			}
-		});
 	}
 
 
@@ -511,7 +419,7 @@ public class MainActivity extends SalesforceActivity {
 					System.out.println(result);  //Use our helper function, to print our JSON response.
 
 					System.out.println("got here");
-					String data = parseagain(result.toString());
+					String data = parse(result.toString());
 					System.out.println("data: " +data);
 
 				} catch (Exception e) {

@@ -25,18 +25,18 @@
             android:orientation="horizontal" >
 
             <Button
-                android:id="@+id/fetch_contacts"
+                android:id="@+id/fetch_reports"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:onClick="onFetchContactsClick"
+                android:onClick="onFetchReportsClick"
                 android:text="@string/fetch_reports_button" />
 
             <Button
-                android:id="@+id/fetch_accounts"
+                android:id="@+id/fetch_graphs"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:onClick="onFetchAccountsClick"
-                android:text="@string/fetch_accounts_button" />
+                android:text="@string/fetch_graphs_button" />
 
             <Button
                 android:id="@+id/clear"
@@ -50,12 +50,9 @@
             android:id="@+id/textView1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="TextView" />
+            android:text="First fetch reports" />
 
-        <ListView
-            android:id="@+id/contacts_list"
-            android:layout_width="fill_parent"
-            android:layout_height="fill_parent" />
+       
     </LinearLayout>
 
 </ScrollView>
