@@ -17,10 +17,7 @@ public class GraphActivity extends Activity {
 		Bundle b=this.getIntent().getExtras();
 		percent_array=b.getDoubleArray("percentages");
 
-		for (int i=0; i< percent_array.length; i++){
-			System.out.println("%S: " + percent_array[i]);
-		}
-
+	
 		PieChart effort = new PieChart();
 		Intent effortIntent = effort.getIntent(this);
 		startActivity(effortIntent);

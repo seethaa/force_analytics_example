@@ -53,7 +53,6 @@ import android.widget.Toast;
 
 import com.salesforce.androidsdk.app.SalesforceSDKManager;
 import com.salesforce.androidsdk.rest.RestClient;
-import com.salesforce.androidsdk.rest.RestClient.AsyncRequestCallback;
 import com.salesforce.androidsdk.rest.RestRequest;
 import com.salesforce.androidsdk.rest.RestResponse;
 import com.salesforce.androidsdk.ui.sfnative.SalesforceActivity;
@@ -159,6 +158,7 @@ public class MainActivity extends SalesforceActivity {
 	 * Main parse function which reads the JSON response from server and parses data 
 	 * to retrieve all amounts. 
 	 * This parse function will only work for Opportunity type reports.
+	 * _rev and _age variables can be used for graphing revenue and age components.
 	 * @param jsonLine
 	 * @return
 	 */
@@ -171,13 +171,12 @@ public class MainActivity extends SalesforceActivity {
 			String factMaps = reader.getString("factMap");
 			TextView tv = (TextView) findViewById(R.id.textView1);
 
-			tv.setText(factMaps);
+			tv.setText(jsonLine);
 
 			JSONObject maps = new JSONObject(factMaps); //creates new json object for all maps
 
-			//GET TOTALS (T!T)
+		//GET TOTALS (T!T)
 			String T_T_full = maps.getString("T!T");
-			System.out.println("full string tt : "+ T_T_full);
 			JSONObject T_T_object = new JSONObject(T_T_full);
 
 			JSONArray T_T_label = T_T_object.getJSONArray("aggregates");
@@ -189,7 +188,6 @@ public class MainActivity extends SalesforceActivity {
 			int T_T_amt_int = NumberFormat.getNumberInstance(java.util.Locale.US).parse(T_amt).intValue();
 
 			System.out.println("T int: " + T_T_amt_int);
-			//int T_T_amt_int = Integer.parseInt(T_amt);
 
 			String T_rev = T_T_label.getJSONObject(1).getString("label");
 			System.out.println("T_rev: " + T_rev);
@@ -197,9 +195,8 @@ public class MainActivity extends SalesforceActivity {
 			String T_age = T_T_label.getJSONObject(2).getString("label");
 			System.out.println("T_age: " + T_age);
 
-			//GET TYPE (0!T)
+		//GET TYPE (0!T)
 			String T_0_full = maps.getString("0!T");
-			System.out.println("full string 0t : "+ T_0_full);
 			JSONObject T_0_object = new JSONObject(T_0_full);
 
 			JSONArray T_0_label = T_0_object.getJSONArray("aggregates");
@@ -225,7 +222,7 @@ public class MainActivity extends SalesforceActivity {
 			String T_0_age = T_0_label.getJSONObject(2).getString("label");
 			System.out.println("T_0_age: " + T_0_age);
 
-			//GET EXISTING CUSTOMER - UPGRADE (1!T)
+		//GET EXISTING CUSTOMER - UPGRADE (1!T)
 			String T_1_full = maps.getString("1!T");
 			System.out.println("full string 1t : "+ T_1_full);
 			JSONObject T_1_object = new JSONObject(T_1_full);
@@ -253,7 +250,7 @@ public class MainActivity extends SalesforceActivity {
 			String T_1_age = T_1_label.getJSONObject(2).getString("label");
 			System.out.println("T_1_age: " + T_1_age);
 
-			//GET EXISTING CUSTOMER - REPLACEMENT (2!T)
+		//GET EXISTING CUSTOMER - REPLACEMENT (2!T)
 			String T_2_full = maps.getString("2!T");
 			System.out.println("full string 2t : "+ T_2_full);
 			JSONObject T_2_object = new JSONObject(T_2_full);
@@ -282,9 +279,7 @@ public class MainActivity extends SalesforceActivity {
 			String T_2_age = T_2_label.getJSONObject(2).getString("label");
 			System.out.println("T_2_age: " + T_2_age);
 
-
-
-			//GET EXISTING CUSTOMER - DOWNGRADE (3!T)
+		//GET EXISTING CUSTOMER - DOWNGRADE (3!T)
 			String T_3_full = maps.getString("3!T");
 			System.out.println("full string 3t : "+ T_3_full);
 			JSONObject T_3_object = new JSONObject(T_3_full);
@@ -309,7 +304,7 @@ public class MainActivity extends SalesforceActivity {
 			String T_3_age = T_3_label.getJSONObject(2).getString("label");
 			System.out.println("T_3_age: " + T_3_age);
 
-			//NEW CUSTOMER (4!T)
+		//NEW CUSTOMER (4!T)
 			String T_4_full = maps.getString("4!T");
 			System.out.println("full string 4t : "+ T_4_full);
 			JSONObject T_4_object = new JSONObject(T_4_full);
@@ -337,9 +332,6 @@ public class MainActivity extends SalesforceActivity {
 			for (int i=0; i< percentages.length; i++){
 				System.out.println("%PS: " + percentages[i]);
 			}
-
-
-
 
 		} catch (Exception e) {
 			Toast.makeText(getBaseContext(), e.getMessage(),
